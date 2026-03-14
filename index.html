@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game do Respeito - Versão Auditório</title>
+    <title>Game do Respeito</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root {
@@ -23,7 +23,7 @@
             flex-direction: column;
             align-items: center;
             margin: 0;
-            padding-bottom: 50px;
+            padding-bottom: 30px;
             overflow-x: hidden;
         }
 
@@ -41,7 +41,7 @@
 
         .track {
             width: 100%;
-            height: 25px;
+            height: 20px;
             background: #0f3460;
             border-radius: 15px;
             overflow: hidden;
@@ -55,14 +55,14 @@
             transition: width 0.4s ease;
         }
 
-        /* PLACAR GIGANTE */
+        /* PLACAR (PADRÃO DESKTOP) */
         #placar {
             display: flex;
             justify-content: center;
-            gap: 30px;
+            gap: 20px;
             width: 95%;
             max-width: 1100px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
 
         .time-box {
@@ -74,25 +74,22 @@
             transition: 0.3s;
         }
 
-        .nome-time { font-size: 1.5rem; margin-bottom: 10px; letter-spacing: 2px; }
-
-        /* Números do Placar */
+        .nome-time { font-size: 1.5rem; margin-bottom: 5px; letter-spacing: 2px; }
         .pontos {
-            font-size: 80px; /* TAMANHO GIGANTE */
+            font-size: 80px;
             display: block;
             text-shadow: 0 0 20px rgba(255,255,255,0.5);
         }
 
         .ativo-azul { border-color: var(--azul); box-shadow: 0 0 40px var(--azul); transform: scale(1.05); }
         .ativo-amarelo { border-color: var(--amarelo); box-shadow: 0 0 40px var(--amarelo); transform: scale(1.05); }
-
         .bg-azul { background: #005f73; }
         .bg-amarelo { background: #948600; color: white; }
 
         /* JOGO */
         #game-container {
             background: #16213e;
-            padding: 40px;
+            padding: 30px;
             border-radius: 40px;
             width: 90%;
             max-width: 1000px;
@@ -101,24 +98,39 @@
             box-shadow: 0 20px 60px rgba(0,0,0,0.8);
         }
 
-        .pergunta { font-size: 2.2rem; font-weight: bold; margin-bottom: 40px; line-height: 1.2; }
-
+        .pergunta { font-size: 2.2rem; font-weight: bold; margin-bottom: 30px; line-height: 1.2; }
         .cards { display: flex; flex-direction: column; gap: 15px; }
-
         .card {
             background: #0f3460;
-            padding: 25px;
+            padding: 20px;
             border-radius: 20px;
             cursor: pointer;
             border: 3px solid #533483;
-            font-size: 1.6rem;
+            font-size: 1.5rem;
             transition: 0.2s;
         }
-        .card:hover { background: #1a1a40; transform: scale(1.02); }
         .card.correct { background: var(--certo) !important; color: black; border-color: white; }
         .card.wrong { background: var(--errado) !important; color: white; border-color: white; }
 
-        #feedback { font-size: 2.5rem; height: 50px; margin-top: 20px; font-weight: bold; }
+        /* AJUSTES PARA CELULAR (Telas menores que 768px) */
+        @media (max-width: 768px) {
+            #placar {
+                flex-direction: row; /* Mantém lado a lado, mas diminui tudo */
+                gap: 10px;
+            }
+            .time-box {
+                padding: 10px;
+                border-width: 4px;
+            }
+            .nome-time { font-size: 0.8rem; }
+            .pontos { font-size: 40px; } /* Placar menor no celular */
+
+            .pergunta { font-size: 1.4rem; }
+            .card { font-size: 1.1rem; padding: 15px; }
+
+            .btn-start { font-size: 1.5rem; padding: 20px 40px; }
+            h1 { font-size: 2.2rem !important; }
+        }
 
         /* OVERLAYS */
         .overlay {
@@ -130,6 +142,8 @@
             justify-content: center;
             align-items: center;
             z-index: 500;
+            padding: 20px;
+            text-align: center;
         }
 
         .btn-start {
@@ -142,48 +156,50 @@
             border: none;
             box-shadow: 0 10px 0 #008f4c;
         }
-        .btn-start:active { transform: translateY(5px); box-shadow: 0 5px 0 #008f4c; }
+
+        #feedback { font-size: 2rem; height: 40px; margin-top: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="startScreen" class="overlay">
-    <h1 style="font-size: 4rem; color: var(--azul); text-align: center;">GAME DO RESPEITO 🚀</h1>
+    <h1 style="font-size: 4rem; color: var(--azul);">GAME DO RESPEITO 🚀</h1>
     <button class="btn-start" onclick="iniciarJogo()">JOGAR!</button>
 </div>
 
 <div id="container-linha-tempo">
     <div class="track"><div id="bar"></div></div>
-    <div style="margin-top: 5px; font-size: 1.2rem;">QUESTÃO <span id="num">1</span> DE 20</div>
+    <div style="margin-top: 5px; font-size: 1rem;">QUESTÃO <span id="num">1</span> DE 20</div>
 </div>
 
 <div id="placar">
     <div id="box-azul" class="time-box bg-azul ativo-azul">
-        <span class="nome-time">TIME AZUL</span>
+        <span class="nome-time">AZUL</span>
         <span id="pts-azul" class="pontos">0</span>
     </div>
     <div id="box-amarelo" class="time-box bg-amarelo">
-        <span class="nome-time">TIME AMARELO</span>
+        <span class="nome-time">AMARELO</span>
         <span id="pts-amarelo" class="pontos">0</span>
     </div>
 </div>
 
 <div id="game-container">
-    <div id="turno-info" style="font-size: 1.5rem; padding: 10px; border-radius: 15px; margin-bottom: 20px; font-weight: bold;">CARREGANDO...</div>
+    <div id="turno-info" style="font-size: 1.2rem; padding: 8px; border-radius: 15px; margin-bottom: 15px; font-weight: bold;">AGUARDANDO...</div>
     <div class="pergunta" id="txt-pergunta"></div>
     <div class="cards" id="opcoes"></div>
     <div id="feedback"></div>
 </div>
 
 <div id="endScreen" class="overlay" style="display: none; z-index: 100;">
-    <h1 id="vencedor-txt" style="font-size: 4rem; text-align: center; padding: 20px;"></h1>
+    <h1 id="vencedor-txt" style="font-size: 3rem; margin-bottom: 20px;"></h1>
     <button class="btn-start" onclick="location.reload()">REINICIAR</button>
 </div>
 
 <script>
+    // [MESMA LÓGICA DE PERGUNTAS E JOGO ANTERIOR]
     const perguntas = [
         { q: "Se uma menina diz 'não' para uma brincadeira, o que fazer?", a: ["Parar imediatamente", "Continuar só mais um pouco", "Rir e ignorar"], c: 0 },
-        { q: "Um amigo quer abraçar uma colega que não quer. Qual a atitude?", a: ["Forçar o abraço", "Respeitar o espaço dela", "Dizer que ela é chata"], c: 1 },
+        { q: "Um amigo quer abraçar uma colega que não quer. Qual a atitude?", a: ["Respeitar o espaço dela", "Forçar o abraço", "Dizer que ela é chata"], c: 0 },
         { q: "Quem deve cuidar da casa e lavar a louça?", a: ["Só as mulheres", "Só os homens", "Todos que moram na casa"], c: 2 },
         { q: "Ajudar nas tarefas de casa é tarefa de homem?", a: ["Sim, é dever de todos", "Não, isso é coisa de mulher", "Só se for obrigado"], c: 0 },
         { q: "A roupa de uma menina justifica falta de respeito?", a: ["Sim, ela escolheu", "Não, o respeito é obrigatório", "Depende do lugar"], c: 1 },
@@ -192,7 +208,7 @@
         { q: "Demonstrar carinho e sentimentos é sinal de:", a: ["Fraqueza", "Humanidade e inteligência", "Falta de masculinidade"], c: 1 },
         { q: "Recebeu uma foto íntima no WhatsApp. O que você faz?", a: ["Espalho no grupo", "Apago e não compartilho", "Mostro para os amigos"], c: 1 },
         { q: "Ver alguém sendo ofendida na internet e não fazer nada é:", a: ["O certo a se fazer", "Ser cúmplice do desrespeito", "Normal, não é comigo"], c: 1 },
-        { q: "Existem profissões que mulheres não podem exercer?", a: ["Sim, as mais pesadas", "Não, elas podem ser o que quiserem", "Sim, como ser motorista"], c: 1 },
+        { q: "Existem profissões que mulheres não podem exercer?", a: ["Sim, as mais pesadas", "Não, elas podem ser o que quiserem", "Sim, como ser piloto"], c: 1 },
         { q: "Uma mulher pode ser a chefe de um país ou empresa?", a: ["Sim, com certeza", "Não, mulheres são instáveis", "Só se não houver homens"], c: 0 },
         { q: "Meninas podem jogar futebol tão bem quanto os meninos?", a: ["Não, é esporte de homem", "Sim, talento não tem gênero", "Só se for na escola"], c: 1 },
         { q: "Um menino quer fazer balé ou artes. O que fazer?", a: ["Respeitar e apoiar", "Zombar dele", "Ignorar o colega"], c: 0 },
@@ -236,7 +252,7 @@
         document.getElementById('txt-pergunta').innerText = p.q;
 
         const info = document.getElementById('turno-info');
-        info.innerText = vezAzul ? "VEZ DO TIME AZUL" : "VEZ DO TIME AMARELO";
+        info.innerText = vezAzul ? "TIME: AZUL" : "TIME: AMARELO";
         info.style.background = vezAzul ? "var(--azul)" : "var(--amarelo)";
         info.style.color = vezAzul ? "white" : "black";
 
@@ -287,9 +303,9 @@
         document.getElementById('bar').style.width = "100%";
         document.getElementById('endScreen').style.display = 'flex';
         const v = document.getElementById('vencedor-txt');
-        if(pAzul > pAmarelo) v.innerText = "🏆 VITÓRIA DO TIME AZUL!";
-        else if(pAmarelo > pAzul) v.innerText = "🏆 VITÓRIA DO TIME AMARELO!";
-        else v.innerText = "EMPATE! TODOS VENCERAM!";
+        if(pAzul > pAmarelo) v.innerText = "🏆 VITÓRIA AZUL!";
+        else if(pAmarelo > pAzul) v.innerText = "🏆 VITÓRIA AMARELO!";
+        else v.innerText = "EMPATE!";
 
         const end = Date.now() + 5000;
         (function frame() {
