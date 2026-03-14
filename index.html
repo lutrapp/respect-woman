@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game do Respeito - Versão Final</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --azul: #00d2ff;
+            --amarelo: #ffea00;
+            --errado: #ff3e3e;
+            --certo: #00ff88;
+            --bg: #0a0a12;
+            --progresso: #e94560;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--bg);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding-bottom: 50px;
+        }
+
+        /* BARRA DE PROGRESSO */
+        #container-linha-tempo {
+            width: 90%;
+            max-width: 800px;
+            background: #1a1a2e;
+            padding: 15px;
+            border-radius: 15px;
+            margin-top: 20px;
+            border: 1px solid #333;
+            text-align: center;
+        }
+
+        .track {
+            width: 100%;
+            height: 15px;
+            background: #0f3460;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--progresso), var(--azul));
+            transition: width 0.4s ease;
+        }
+
+        /* PLACAR */
+        #placar {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .time-box {
+            padding: 15px 25px;
+            border-radius: 20px;
+            text-align: center;
+            min-width: 150px;
+            border: 4px solid #333;
+        }
+
+        .ativo-azul { border-color: var(--azul); box-shadow: 0 0 15px var(--azul); }
+        .ativo-amarelo { border-color: var(--amarelo); box-shadow: 0 0 15px var(--amarelo); }
+        .bg-azul { background: #005f73; }
+        .bg-amarelo { background: #948600; }
+
+        /* JOGO */
+        #game-container {
+            background: #16213e;
+            padding: 30px;
+            border-radius: 30px;
+            width: 90%;
+            max-width: 800px;
+            text-align: center;
+            border: 2px solid #533483;
+        }
+
+        .pergunta { font-size: 1.6rem; font-weight: bold; margin-bottom: 25px; min-height: 60px; }
+        .cards { display: flex; flex-direction: column; gap: 10px; }
+        .card {
+            background: #0f3460;
+            padding: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 2px solid #533483;
+            font-size: 1.4rem;
+            transition: 0.2s;
+        }
+        .card.correct { background: var(--certo) !important; color: black; }
+        .card.wrong { background: var(--errado) !important; color: white; }
+
+        /* TELAS OVERLAY */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100; /* Reduzido para os confetes aparecerem na frente */
+        }
+
+        .btn-start {
+            background: var(--certo);
+            padding: 20px 40px;
+            font-size: 1.8rem;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="startScreen" class="overlay">
+    <h1 style="font-size: 3rem; color: var(--azul);">GAME DO RESPEITO</h1>
+    <button class="btn-start" onclick="iniciarJogo()">COMEÇAR 🚀</button>
+</div>
+
+<div id="container-linha-tempo">
+    <div class="track"><div id="bar"></div></div>
+    <p>QUESTÃO <span id="num">1</span> DE 20</p>
+</div>
+
+<div id="placar">
+    <div id="box-azul" class="time-box bg-azul ativo-azul">AZUL: <span id="pts-azul">0</span></div>
+    <div id="box-amarelo" class="time-box bg-amarelo">AMARELO: <span id="pts-amarelo">0</span></div>
+</div>
+
+<div id="game-container">
+    <div id="turno-info" style="padding: 10px; border-radius: 10px; margin-bottom: 10px; font-weight: bold;"></div>
+    <div class="pergunta" id="txt-pergunta"></div>
+    <div class="cards" id="opcoes"></div>
+    <div id="feedback" style="height: 30px; margin-top: 15px; font-weight: bold;"></div>
+</div>
+
+<div id="endScreen" class="overlay" style="display: none;">
+    <h1 id="vencedor-txt" style="font-size: 3rem; text-align: center;"></h1>
+    <button class="btn-start" onclick="location.reload()">JOGAR NOVAMENTE</button>
+</div>
+
+<script>
+    const perguntas = [
+        { q: "Se uma menina diz 'não' para uma brincadeira, o que fazer?", a: ["Parar imediatamente", "Continuar só mais um pouco", "Rir e ignorar"], c: 0 },
+        { q: "Um amigo quer abraçar uma colega que não quer. Qual a atitude?", a: ["Forçar o abraço", "Respeitar o espaço dela", "Dizer que ela é chata"], c: 1 },
+        { q: "Quem deve cuidar da casa e lavar a louça?", a: ["Só as mulheres", "Só os homens", "Todos que moram na casa"], c: 2 },
+        { q: "Ajudar nas tarefas de casa é tarefa de homem?", a: ["Sim, é dever de todos", "Não, isso é coisa de mulher", "Só se for obrigado"], c: 0 },
+        { q: "A roupa de uma menina justifica falta de respeito?", a: ["Sim, ela escolheu", "Não, o respeito é obrigatório", "Depende do lugar"], c: 1 },
+        { q: "Comentários maldosos sobre o corpo da colega são:", a: ["Elogios", "Brincadeiras normais", "Falta de respeito/Assédio"], c: 2 },
+        { q: "É verdade que 'homem não chora'?", a: ["Sim, homem é forte", "Não, todos têm sentimentos", "Só chora se estiver sozinho"], c: 1 },
+        { q: "Demonstrar carinho e sentimentos é sinal de:", a: ["Fraqueza", "Humanidade e inteligência", "Falta de masculinidade"], c: 1 },
+        { q: "Recebeu uma foto íntima no WhatsApp. O que você faz?", a: ["Espalho no grupo", "Apago e não compartilho", "Mostro para os amigos"], c: 1 },
+        { q: "Ver alguém sendo ofendida na internet e não fazer nada é:", a: ["O certo a se fazer", "Ser cúmplice do desrespeito", "Normal, não é comigo"], c: 1 },
+        { q: "Existem profissões que mulheres não podem exercer?", a: ["Sim, as mais pesadas", "Não, elas podem ser o que quiserem", "Sim, como ser motorista"], c: 1 },
+        { q: "Uma mulher pode ser a chefe de um país ou empresa?", a: ["Sim, com certeza", "Não, mulheres são instáveis", "Só se não houver homens"], c: 0 },
+        { q: "Meninas podem jogar futebol tão bem quanto os meninos?", a: ["Não, é esporte de homem", "Sim, talento não tem gênero", "Só se for na escola"], c: 1 },
+        { q: "Um menino quer fazer balé ou artes. O que fazer?", a: ["Respeitar e apoiar", "Zombar dele", "Ignorar o colega"], c: 0 },
+        { q: "Se você vir uma mulher sendo agredida, você deve:", a: ["Ficar olhando", "Chamar a polícia (190)", "Filmar para postar"], c: 1 },
+        { q: "Em briga de marido e mulher, a gente:", a: ["Não se mete nunca", "Chama ajuda para proteger a vítima", "Dá risada"], c: 1 },
+        { q: "Apelidos ofensivos contra meninas são:", a: ["Apenas 'zoeira'", "Violência psicológica", "Normal da idade"], c: 1 },
+        { q: "Tocar em alguém sem permissão é:", a: ["Brincadeira", "Errado e pode ser assédio", "Demonstração de amizade"], c: 1 },
+        { q: "O que faz uma sociedade ser melhor?", a: ["O uso da força física", "O respeito e a igualdade", "Cada um cuidar de si"], c: 1 },
+        { q: "Respeitar as mulheres é:", a: ["Uma obrigação de todos", "Algo que se faz às vezes", "Só para agradar"], c: 0 }
+    ];
+
+    let atual = 0, pAzul = 0, pAmarelo = 0, vezAzul = true, isPlaying = false;
+
+    function playBeep(freq) {
+        try {
+            const ac = new (window.AudioContext || window.webkitAudioContext)();
+            const o = ac.createOscillator();
+            const g = ac.createGain();
+            o.connect(g); g.connect(ac.destination);
+            o.frequency.value = freq;
+            g.gain.setValueAtTime(0.1, ac.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.01, ac.currentTime + 0.3);
+            o.start(); o.stop(ac.currentTime + 0.3);
+        } catch(e) {}
+    }
+
+    function iniciarJogo() {
+        document.getElementById('startScreen').style.display = 'none';
+        isPlaying = true;
+        render();
+    }
+
+    function render() {
+        if (atual >= perguntas.length) {
+            finalizar();
+            return;
+        }
+        document.getElementById('bar').style.width = (atual / perguntas.length * 100) + "%";
+        document.getElementById('num').innerText = atual + 1;
+        const p = perguntas[atual];
+        document.getElementById('txt-pergunta').innerText = p.q;
+        const info = document.getElementById('turno-info');
+        info.innerText = vezAzul ? "VEZ DO TIME AZUL" : "VEZ DO TIME AMARELO";
+        info.style.background = vezAzul ? "var(--azul)" : "var(--amarelo)";
+        info.style.color = vezAzul ? "white" : "black";
+        document.getElementById('box-azul').className = vezAzul ? 'time-box bg-azul ativo-azul' : 'time-box bg-azul';
+        document.getElementById('box-amarelo').className = !vezAzul ? 'time-box bg-amarelo ativo-amarelo' : 'time-box bg-amarelo';
+        const container = document.getElementById('opcoes');
+        container.innerHTML = '';
+        p.a.forEach((txt, i) => {
+            const b = document.createElement('div');
+            b.className = 'card';
+            b.innerText = txt;
+            b.onclick = () => checar(i, b);
+            container.appendChild(b);
+        });
+    }
+
+    function checar(idx, elemento) {
+        if (!isPlaying) return;
+        isPlaying = false;
+        const feed = document.getElementById('feedback');
+        if (idx === perguntas[atual].c) {
+            playBeep(800);
+            elemento.classList.add('correct');
+            feed.innerText = "CERTO! +10";
+            feed.style.color = "var(--certo)";
+            if(vezAzul) pAzul += 10; else pAmarelo += 10;
+            confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
+        } else {
+            playBeep(200);
+            elemento.classList.add('wrong');
+            feed.innerText = "ERRADO! -5";
+            feed.style.color = "var(--errado)";
+            if(vezAzul) pAzul -= 5; else pAmarelo -= 5;
+        }
+        document.getElementById('pts-azul').innerText = pAzul;
+        document.getElementById('pts-amarelo').innerText = pAmarelo;
+        setTimeout(() => {
+            feed.innerText = "";
+            atual++;
+            vezAzul = !vezAzul;
+            isPlaying = true;
+            render();
+        }, 1500);
+    }
+
+    function finalizar() {
+        document.getElementById('bar').style.width = "100%";
+        document.getElementById('endScreen').style.display = 'flex';
+        const v = document.getElementById('vencedor-txt');
+        if(pAzul > pAmarelo) v.innerText = "🏆 VITÓRIA DO TIME AZUL!";
+        else if(pAmarelo > pAzul) v.innerText = "🏆 VITÓRIA DO TIME AMARELO!";
+        else v.innerText = "EMPATE! TODOS GANHAM!";
+
+        // EXPLOSÃO DE CONFETES QUE APARECE NA FRENTE
+        const end = Date.now() + 4000;
+        (function frame() {
+            confetti({ particleCount: 7, angle: 60, spread: 55, origin: { x: 0 }, zIndex: 999 });
+            confetti({ particleCount: 7, angle: 120, spread: 55, origin: { x: 1 }, zIndex: 999 });
+            if (Date.now() < end) requestAnimationFrame(frame);
+        }());
+    }
+</script>
+</body>
+</html>
